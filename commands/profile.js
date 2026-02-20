@@ -6,7 +6,7 @@ const fmt = (num) => Math.floor(Number(num)).toLocaleString('id-ID');
 const safeInt = (val) => isNaN(Number(val)) ? 0 : Number(val);
 
 // ==================================================================
-// 💰 DATA REFERENSI HARGA (UNTUK HITUNG KEKAYAAN)
+// 💰 DATA REFERENSI HARGA
 // ==================================================================
 
 // 1. PROPERTI / BISNIS
@@ -71,98 +71,105 @@ const JOB_TITLES = {
 
 module.exports = async (command, args, msg, user, db, chat, sock) => {
     
-    // RUMUS TOTAL KEKAYAAN (NET WORTH)
-    const calculateNetWorth = (userId, userData) => {
-        let total = 0;
+   // RUMUS TOTAL KEKAYAAN (NET WORTH)
+const calculateNetWorth = (userId, userData) => {
+    let total = 0;
 
-        // 1. Uang Tunai & Bank
-        total += safeInt(userData.balance);
-        total += safeInt(userData.bank);
+    // 1. Uang Tunai & Bank
+    total += safeInt(userData.balance);
+    total += safeInt(userData.bank);
 
-        // 2. Aset Crypto
-        if (userData.crypto) {
-            for (let [coin, amt] of Object.entries(userData.crypto)) {
-                let price = 0;
-                if (db.market?.prices?.[coin]) price = db.market.prices[coin].price;
-                total += safeInt(amt) * price;
+    // 2. Aset Crypto (FIXED: Tidak ada double-count BTC)
+    if (userData.crypto) {
+        for (let [coin, amt] of Object.entries(userData.crypto)) {
+            let price = db.market?.prices?.[coin]?.price || 0;
+            
+            // Samakan harga fallback BTC dengan yang ada di command !me
+            if (price === 0 && coin === 'btc') {
+                price = db.market?.forex?.usd ? (db.market.forex.usd * 63000) : 1_500_000_000;
             }
-        }
-
-        // 3. Aset Saham
-        if (userData.portfolio) {
-            for (let [code, stock] of Object.entries(userData.portfolio)) {
-                let price = stock.avg;
-                if (db.stockMarket?.prices?.[code]) price = db.stockMarket.prices[code].price;
-                total += safeInt(stock.qty) * price;
-            }
-        }
-
-        // 4. VALAS & EMAS (Updated: USD, EUR, JPY, Emas)
-        if (userData.forex) {
-             for (let [code, qty] of Object.entries(userData.forex)) {
-                 let price = 0;
-                 // Cek Database Pasar
-                 if (db.market?.forex?.[code]) price = db.market.forex[code];
-                 
-                 // Fallback Harga jika DB Pasar belum update/nol (Sesuai valas.js)
-                 if (price === 0) {
-                    if (code === 'usd') price = 16200;
-                    if (code === 'eur') price = 17500;
-                    if (code === 'jpy') price = 110;
-                    if (code === 'emas') price = 1350000;
-                 }
-                 
-                 total += safeInt(qty) * price;
-             }
-        }
-
-        // 5. Ternak
-        if (userData.ternak) userData.ternak.forEach(a => total += (ANIMAL_PRICES[a.type] || 0));
-        
-        // 6. Farming (Mesin & Hasil)
-        if (userData.farm?.machines) userData.farm.machines.forEach(m => total += (MACHINE_PRICES[m] || 0));
-        if (userData.farm?.inventory) {
-            for (let [item, qty] of Object.entries(userData.farm.inventory)) {
-                let price = db.market?.commodities?.[item] || CROP_PRICES[item] || 0;
-                total += safeInt(qty) * price;
-            }
-        }
-
-       // 7. Mining (Alat + Upgrade + Saldo BTC)
-if (userData.mining) {
-    // Hitung harga semua VGA di rak (Mengikuti harga pasar jika ada)
-if (userData.mining.racks) {
-    userData.mining.racks.forEach(m => {
-        let marketPrice = db.market?.miningPrices?.[m]; // Ambil harga pasar live
-        total += safeInt(marketPrice || MINING_PRICES[m] || 0);
-    });
-}
-    // Hitung harga Upgrade yang sudah terpasang
-    if (userData.mining.upgrades) {
-        for (let [upg, active] of Object.entries(userData.mining.upgrades)) {
-            if (active) total += safeInt(MINING_UPGRADE_PRICES[upg] || 0);
+            
+            total += safeInt(amt) * price;
         }
     }
-}
 
-// Tambahkan juga hitungan koin BTC ke kekayaan (jika belum ada di bagian crypto)
-if (userData.crypto && userData.crypto.btc) {
-    let btcPrice = db.market?.forex?.usd ? (db.market.forex.usd * 63000) : 1_500_000_000;
-    total += safeInt(userData.crypto.btc * btcPrice);
-}
+    // 3. Aset Saham
+    if (userData.portfolio) {
+        for (let [code, stock] of Object.entries(userData.portfolio)) {
+            let price = stock.avg;
+            if (db.stockMarket?.prices?.[code]) price = db.stockMarket.prices[code].price;
+            total += safeInt(stock.qty) * price;
+        }
+    }
 
-        // 9. Properti (Bisnis)
-        if (userData.business && userData.business.owned) {
-            for (let [bizId, qty] of Object.entries(userData.business.owned)) {
-                total += safeInt(qty) * (PROPERTY_PRICES[bizId] || 0);
+    // 4. VALAS & EMAS
+    if (userData.forex) {
+         for (let [code, qty] of Object.entries(userData.forex)) {
+             let price = db.market?.forex?.[code] || 0;
+             if (price === 0) {
+                if (code === 'usd') price = 16200;
+                if (code === 'eur') price = 17500;
+                if (code === 'jpy') price = 110;
+                if (code === 'emas') price = 1350000;
+             }
+             total += safeInt(qty) * price;
+         }
+    }
+
+    // 5. Ternak
+    if (userData.ternak) userData.ternak.forEach(a => total += (ANIMAL_PRICES[a.type] || 0));
+    
+    // 6. Farming (Mesin & Hasil)
+    if (userData.farm?.machines) userData.farm.machines.forEach(m => total += (MACHINE_PRICES[m] || 0));
+    if (userData.farm?.inventory) {
+        for (let [item, qty] of Object.entries(userData.farm.inventory)) {
+            let price = db.market?.commodities?.[item] || CROP_PRICES[item] || 0;
+            total += safeInt(qty) * price;
+        }
+    }
+
+    // 7. Mining (Alat + Upgrade)
+    if (userData.mining) {
+        if (userData.mining.racks) {
+            userData.mining.racks.forEach(m => {
+                let marketPrice = db.market?.miningPrices?.[m]; 
+                total += safeInt(marketPrice || MINING_PRICES[m] || 0);
+            });
+        }
+        if (userData.mining.upgrades) {
+            for (let [upg, active] of Object.entries(userData.mining.upgrades)) {
+                if (active) total += safeInt(MINING_UPGRADE_PRICES[upg] || 0);
             }
         }
+    }
 
-        // Kurangi Hutang
-        total -= safeInt(userData.debt);
+    // 8. PABRIK / INDUSTRI
+    if (db.factories?.[userId]) {
+        const myFactory = db.factories[userId];
+        // Hitung nilai mesin pabrik
+        if (myFactory.machines) {
+            myFactory.machines.forEach(m => total += (FACTORY_MACHINE_PRICES[m] || 0));
+        }
+        // Hitung hasil produksi di inventory pabrik
+        if (myFactory.inventory) {
+            for (let [item, qty] of Object.entries(myFactory.inventory)) {
+                total += safeInt(qty) * (FACTORY_PRODUCT_PRICES[item] || 0);
+            }
+        }
+    }
 
-        return total;
-    };
+    // 9. Properti (Bisnis)
+    if (userData.business?.owned) {
+        for (let [bizId, qty] of Object.entries(userData.business.owned)) {
+            total += safeInt(qty) * (PROPERTY_PRICES[bizId] || 0);
+        }
+    }
+
+    // 10. Kurangi Hutang
+    total -= safeInt(userData.debt);
+
+    return total;
+};
 
     const getTitle = (lvl) => {
         if (lvl >= 100) return "🐲 Dragon Slayer";
@@ -395,3 +402,4 @@ if (userData.crypto && userData.crypto.btc) {
     }
 
 };
+
