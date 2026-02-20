@@ -254,119 +254,157 @@ Format yang menarik dan informatif.`;
     }
 
     // ══════════════════════════════════════════════════════════
-    // FITUR 34: AI VOICE TTS — !voice <teks>
+    // FITUR 34: AI VOICE TTS — !voice <karakter> <teks>
     // ══════════════════════════════════════════════════════════
     if (['voice', 'suara', 'tts2'].includes(command)) {
-        const teks = args.join(' ').trim();
+        
+        // ─── DAFTAR KARAKTER ELEVENLABS ───────────────────────
+        const VOICES = {
+            // 👩 SUARA PEREMPUAN
+            'rachel-Tenang, Ramah': '21m00Tcm4TlvDq8ikWAM',   // Tenang, Ramah
+            'domi-Kuat, Emosional': 'AZnzlpC661zN5b15gA1P',     // Kuat, Emosional
+            'bella-Lembut': 'EXAVITQu4vr4xnSDxMaL',    // Lembut
+            'emily-Kalem': 'LcfcDJNUP1GQjkvn1xUw',    // Kalem
+            'elli-Ekspresif': 'MF3mGyEYCl7XYWbV9V6O',     // Ekspresif
+            'dorothy-British, Dongeng Anak': 'ThT5KcBeYPX3keUQqHPh',  // British, Dongeng anak
+            'charlotte-Menggoda, Santai': 'XB0fDUnXU5tzwAwxzVj1',// Menggoda, Santai
+            'matilda-Hangat, Narasi': 'XrExE9yKIg1WjnnlVkGX',  // Hangat, Narasi
+            'gigi-Kekanak-kanakan': 'jBpfuIE2acCO8z3wKOUg',     // Kekanak-kanakan
+            'freya-Karakter Game, Tegas': 'jsCqWAovK2zikvvWHpzZ',    // Karakter Game, Tegas
+            'grace-Aksen Selatan (US)': 'oWAxZDx7w5VEj9dCyTzz',    // Aksen Selatan (US)
+            'lily-Serak, Sedih': 'pFZP5JQG7iQjIQuC4Bku',     // Serak, Sedih
+            'serena-Menyenangkan': 'pNdV7HN2jcTKrv50XQk2',   // Menyenangkan
+            'nicole-Berbisik / ASMR': 'piTKgcLEGmPE4e6mJC11',   // Berbisik / ASMR
+            'glinda-Gaya Penyihir': 'z9fAnlkpzviPz146aGWa',   // Gaya Penyihir
+
+            // 👨 SUARA LAKI-LAKI
+            'drew-Pembaca Berita': '29vD33N1CtxCmqQRPOHJ',     // Pembaca Berita
+            'clyde-Veteran Perang, Serak': '2EiwWnXFnvU5JabPnv8n',    // Veteran Perang, Serak
+            'dave-Percakapan Santai': 'CYw3kZ02Kc81Dwwph2Gl',     // Percakapan Santai
+            'fin-Aksen Irlandia': 'D38z5RcWu1voky8WS1ja',      // Aksen Irlandia
+            'antoni-Bulat, Ramah': 'ErXwobaYiN019PkySvjV',   // Bulat, Ramah
+            'thomas-Sangat Tenang': 'GBv7mTt0atIp3Br8iCZE',   // Sangat Tenang
+            'charlie-Natural, Kasual': 'IKne3meq5aSn9XLyUdCD',  // Natural, Kasual
+            'callum-Berat, Serak': 'N2lVS1w4EtoT3dr4eOWO',   // Berat, Serak
+            'patrick-Lantang / Berteriak': 'ODq5zmih8GrVes37Dizd',  // Lantang / Berteriak
+            'harry-Cemas / Gugup': 'SOYHLrjzK2X1ezoPC6cr',    // Cemas / Gugup
+            'liam-Suara Anak Muda': 'TX3LPaxmHKxFHrU4XqI2',     // Suara Anak Muda
+            'josh-Narator Dokumenter': 'tx3xeKwWE18O4X2MvWPM',     // Narator Dokumenter
+            'arnold-Sangat Berat': 'VR6AewLTigWG4xSOukaG',   // Sangat Berat
+            'matthew-British Tua': 'Yko7PKHZNXotIFUBG7I9',  // British Tua
+            'james-Aksen Australia': 'ZQe5CZNOzWyzOMcNZUvi',    // Aksen Australia
+            'joseph-British Berita': 'Zlb1dXrM653N07zX8vtR',   // British Berita
+            'jeremy-Antusias / Bersemangat': 'bVMeCyTHy58xNoL34h3p',   // Antusias / Bersemangat
+            'michael-Membaca Buku Cerita': 'flq6f7yk4E4fJM5XTYuZ',  // Membaca Buku Cerita
+            'ethan-ASMR, Bisik-bisik': 'g5CIjZEefAph4nQFvHAz',    // ASMR, Bisik-bisik
+            'daniel-British Elegan': 'onwK4e9ZLuTAKqWW03F9',   // British Elegan
+            'adam-Berat, Dalam (Deep)': 'pNInz6obpgDQGcFmaJgB',     // Berat, Dalam (Deep)
+            'ryan-Militer / Tentara': 'wViXBPUzp2ZZixB1xQuM',     // Militer / Tentara
+            'sam-Kasar, Serak': 'yoZ06aBxZCGqiED32Qh0'       // Kasar, Serak
+        };
+
+        const argsKarakter = args[0]?.toLowerCase();
+        
+        if (!argsKarakter || (!VOICES[argsKarakter] && argsKarakter !== 'list')) {
+             let txt = `🎙️ *AI VOICE TTS*\n\n`;
+             txt += `Cara pakai:\n`;
+             txt += `\`!voice <karakter> <teks>\`\n\n`;
+             txt += `*Karakter Tersedia (${Object.keys(VOICES).length} Suara):*\n`;
+             
+             // Menampilkan daftar dengan rapi
+             let col = 0;
+             for (const name in VOICES) {
+                 txt += `\`${name.padEnd(10, ' ')}\` `;
+                 col++;
+                 if (col % 2 === 0) txt += `\n`; // Tiap 2 kolom turun baris
+             }
+             
+             txt += `\n\n*Contoh:*\n`;
+             txt += `\`!voice freya Halo semua, namaku Freya!\`\n`;
+             txt += `\`!voice patrick Tolong aku!\`\n\n`;
+             txt += `_Maksimal 200 karakter_`;
+             
+             return msg.reply(txt);
+        }
+
+        const teks = args.slice(1).join(' ').trim();
 
         if (!teks) {
-            return msg.reply(
-                `🎙️ *AI VOICE TTS*\n\n` +
-                `Cara pakai:\n` +
-                `\`!voice <teks>\`\n\n` +
-                `Contoh:\n` +
-                `\`!voice Halo semuanya, selamat pagi!\`\n` +
-                `\`!voice Good morning, how are you today?\`\n\n` +
-                `💡 Mendukung Bahasa Indonesia & Inggris\n` +
-                `_Maksimal 200 karakter_`
-            );
+            return msg.reply(`❌ Masukkan teksnya!\nContoh: \`!voice ${argsKarakter} Halo semuanya!\``);
         }
 
         if (teks.length > 200) {
             return msg.reply('❌ Teks terlalu panjang! Maksimal 200 karakter.');
         }
 
-        await msg.reply('🎙️ _Mengkonversi teks ke suara..._');
+        await msg.reply(`🎙️ _Mengkonversi teks menggunakan suara *${argsKarakter.toUpperCase()}*..._`);
+
+        const elevenKey = process.env.ELEVENLABS_API_KEY;
+        const voiceKey = process.env.VOICERSS_API_KEY;
+        const targetJid = msg.key.remoteJid || msg.from;
 
         try {
-            // Coba VoiceRSS API (gratis tier tersedia)
-            const voiceKey = process.env.VOICERSS_API_KEY;
-            const elevenKey = process.env.ELEVENLABS_API_KEY;
+            // ─── PERCOBAAN 1: ELEVENLABS ──────────────────────
+            if (!elevenKey) throw new Error("NO_ELEVENLABS_KEY");
 
-            if (elevenKey) {
-                // ─── Mode: ElevenLabs (kualitas terbaik) ─────
-                const response = await axios({
-                    method: 'POST',
-                    url: 'https://api.elevenlabs.io/v1/text-to-speech/pNInz6obpgDQGcFmaJgB',
-                    headers: {
-                        'Accept': 'audio/mpeg',
-                        'xi-api-key': elevenKey,
-                        'Content-Type': 'application/json'
-                    },
-                    data: {
-                        text: teks,
-                        model_id: 'eleven_multilingual_v2',
-                        voice_settings: { stability: 0.5, similarity_boost: 0.75 }
-                    },
-                    responseType: 'arraybuffer',
-                    timeout: 20000
-                });
+            const selectedVoiceId = VOICES[argsKarakter];
+            
+            const response = await axios({
+                method: 'POST',
+                url: `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}`,
+                headers: {
+                    'Accept': 'audio/mpeg',
+                    'xi-api-key': elevenKey,
+                    'Content-Type': 'application/json'
+                },
+                data: {
+                    text: teks,
+                    model_id: 'eleven_multilingual_v2',
+                    voice_settings: { stability: 0.5, similarity_boost: 0.75 }
+                },
+                responseType: 'arraybuffer',
+                timeout: 20000
+            });
 
-                const audioBuffer = Buffer.from(response.data);
-                const audioPath = path.join(TEMP_DIR, `voice_${Date.now()}.mp3`);
-                fs.writeFileSync(audioPath, audioBuffer);
+            const audioBuffer = Buffer.from(response.data);
 
-                await sock.sendMessage(msg.from, {
-                    audio: audioBuffer,
-                    mimetype: 'audio/mpeg',
-                    ptt: true // Kirim sebagai voice note
-                }, { quoted: m });
+            await sock.sendMessage(targetJid, {
+                audio: audioBuffer,
+                mimetype: 'audio/mp4', 
+                ptt: true 
+            }, { quoted: msg });
 
-                fs.unlinkSync(audioPath);
-                return msg.reply(`✅ _Voice note berhasil dikirim!_\n_Powered by ElevenLabs AI_`);
-            }
+            return msg.reply(`✅ _Voice note berhasil dikirim! (ElevenLabs)_`);
 
-            // ─── Fallback: VoiceRSS ──────────────────────────
-            if (voiceKey) {
-                const lang = /[a-zA-Z]{3,}/.test(teks) && !/[iuea]/.test(teks.substring(0, 10).toLowerCase()) ? 'id-id' : 'id-id';
+        } catch (elevenError) {
+            console.error('⚠️ ElevenLabs gagal/limit:', elevenError.message);
+            
+            // ─── PERCOBAAN 2: FALLBACK VOICERSS ───────────────
+            try {
+                if (!voiceKey) throw new Error("NO_VOICERSS_KEY");
+
+                // Deteksi bahasa sederhana (Indonesia vs Inggris)
+                const lang = /[a-zA-Z]{3,}/.test(teks) && !/[iuea]/.test(teks.substring(0, 10).toLowerCase()) ? 'en-us' : 'id-id';
                 const url = `https://api.voicerss.org/?key=${voiceKey}&hl=${lang}&src=${encodeURIComponent(teks)}&f=48khz_16bit_stereo&r=0&c=mp3&ssml=false`;
+                
                 const res = await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 });
                 const audioBuffer = Buffer.from(res.data);
 
-                await sock.sendMessage(msg.from, {
+                await sock.sendMessage(targetJid, {
                     audio: audioBuffer,
-                    mimetype: 'audio/mpeg',
+                    mimetype: 'audio/mp4',
                     ptt: true
-                }, { quoted: m });
+                }, { quoted: msg });
 
-                return msg.reply('✅ _Voice note berhasil!_');
+                return msg.reply('⚠️ _Gagal mendapatkan suara dari ElevenLabs (Mungkin kuota habis). Menggunakan suara cadangan (VoiceRSS)._');
+
+            } catch (fallbackError) {
+                console.error('❌ VoiceRSS Fallback Error:', fallbackError.message);
+                return msg.reply('❌ Gagal membuat voice note. ElevenLabs dan VoiceRSS sedang bermasalah atau API Key belum diatur di `.env`.');
             }
-
-            // ─── Fallback: gTTS via endpoint publik ───────────
-            // Pakai Google Translate TTS (informal, tidak resmi)
-            const lang = /[a-zA-Z]/.test(teks.substring(0, 20)) ? 'en' : 'id';
-            const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(teks)}&tl=${lang}&client=tw-ob`;
-
-            const res = await axios.get(ttsUrl, {
-                responseType: 'arraybuffer',
-                timeout: 10000,
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1)',
-                    'Referer': 'https://translate.google.com/'
-                }
-            });
-
-            const audioBuffer = Buffer.from(res.data);
-            await sock.sendMessage(msg.from, {
-                audio: audioBuffer,
-                mimetype: 'audio/mpeg',
-                ptt: true
-            }, { quoted: m });
-
-            return msg.reply('✅ _Voice note berhasil dikirim!_');
-
-        } catch (e) {
-            console.error('Voice Error:', e.message);
-            return msg.reply(
-                `❌ Gagal membuat voice note.\n\n` +
-                `💡 Tips: Tambahkan API key di .env:\n` +
-                `• \`ELEVENLABS_API_KEY\` (kualitas terbaik)\n` +
-                `• \`VOICERSS_API_KEY\` (gratis 350 req/hari)\n\n` +
-                `Atau gunakan \`!tts ${teks}\` (TTS bawaan)`
-            );
         }
     }
-
+    
     // ══════════════════════════════════════════════════════════
     // FITUR 35: AI STORY GENERATOR — !cerita <tema>
     // ══════════════════════════════════════════════════════════
