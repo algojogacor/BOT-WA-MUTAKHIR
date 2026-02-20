@@ -1,6 +1,6 @@
 FROM node:20-bookworm
 
-# Install sistem dependencies
+# 1. Install sistem dependencies
 RUN apt-get update && \
     apt-get install -y \
     ffmpeg \
@@ -13,29 +13,27 @@ RUN apt-get update && \
     apt-get upgrade -y && \
     rm -rf /var/lib/apt/lists/*
 
-# Install Python library
+# 2. Install Python library
 RUN pip3 install pillow --break-system-packages
 
-# Set working directory
+# 3. Set working directory
 WORKDIR /app
 
-# Copy package files dulu (layer cache)
-COPY commands/package*.json ./
+# 4. PERBAIKAN: Copy package.json dari ROOT (folder utama), BUKAN dari commands
+COPY package*.json ./
 
-# Install Node.js dependencies
-RUN npm install --production
+# 5. Install Node.js dependencies
+# Menggunakan --omit=dev agar lebih ringan dan cepat
+RUN npm install --omit=dev
 
-# Install node-cron (tambahan v2.0)
-RUN npm install node-cron
-
-# Copy semua file bot
+# 6. Copy semua file bot
 COPY . .
 
-# Buat direktori penting
+# 7. Buat direktori penting (pastikan session ada agar tidak minta scan ulang terus)
 RUN mkdir -p session temp helpers
 
-# Expose port
+# Expose port untuk health check Koyeb/Railway
 EXPOSE 3000
 
-# Jalankan bot
+# 8. Jalankan bot
 CMD ["node", "index.js"]
