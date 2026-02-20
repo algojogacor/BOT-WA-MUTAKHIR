@@ -182,7 +182,7 @@ const calculateNetWorth = (userId, userData) => {
     };
 
 // ==================================================================
-    // 1. PROFILE USER (!me)
+    // 1. PROFILE USER (!me) - UPDATED WITH ALL ASSETS
     // ==================================================================
     if (command === "me" || command === "profile" || command === "level") {
         const senderId = msg.author || msg.key.participant || msg.key.remoteJid;
@@ -209,10 +209,13 @@ const calculateNetWorth = (userId, userData) => {
              }
         }
 
-        // 3. Hitung Aset Mining (Hardware + Upgrade)
+       // 3. Hitung Aset Mining (SINKRON DENGAN HARGA PASAR)
         let miningAsset = 0;
         if (user.mining?.racks) {
-            user.mining.racks.forEach(m => miningAsset += (MINING_PRICES[m] || 0));
+            user.mining.racks.forEach(m => {
+                let marketPrice = db.market?.miningPrices?.[m]; 
+                miningAsset += safeInt(marketPrice || MINING_PRICES[m] || 0);
+            });
         }
         if (user.mining?.upgrades) {
             const UPG_PRICES = { 'cooling': 5000000000, 'psu': 10000000000, 'firewall': 20000000000 };
@@ -221,12 +224,14 @@ const calculateNetWorth = (userId, userData) => {
             }
         }
 
-        // 4. Hitung Aset Crypto (BTC/ETH/dll)
+        // 4. Hitung Aset Crypto (SINKRON DENGAN NET WORTH)
         let cryptoAsset = 0;
         if (user.crypto) {
             for (let [coin, amt] of Object.entries(user.crypto)) {
                 let price = db.market?.prices?.[coin]?.price || 0;
-                if (price === 0 && coin === 'btc') price = 1500000000;
+                if (price === 0 && coin === 'btc') {
+                    price = db.market?.forex?.usd ? (db.market.forex.usd * 63000) : 1_500_000_000;
+                }
                 cryptoAsset += safeInt(amt) * price;
             }
         }
@@ -437,5 +442,3 @@ const calculateNetWorth = (userId, userData) => {
     }
 
 };
-
-
