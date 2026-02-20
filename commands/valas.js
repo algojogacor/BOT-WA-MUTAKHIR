@@ -1,61 +1,78 @@
 const { saveDB } = require('../helpers/database');
-const axios = require('axios'); // Pastikan sudah: npm install axios
+const axios = require('axios'); 
 
 // HELPER FORMAT ANGKA
 const fmt = (num) => Math.floor(Number(num)).toLocaleString('id-ID');
 
 module.exports = async (command, args, msg, user, db) => {
-    const validCommands = ['valas', 'kurs', 'forex', 'beliemas', 'jualemas', 'beliusd', 'jualusd', 'belijpy', 'jualjpy', 'belivalas', 'jualvalas', 'aset'];
+    // 1. DAFTAR MATA UANG YANG TERSEDIA (Kode harus huruf kecil)
+    const CURRENCIES = ['usd', 'eur', 'sgd', 'myr', 'jpy', 'gbp', 'cny', 'sar', 'aud', 'emas'];
+    
+    // 2. GENERATE VALID COMMANDS OTOMATIS (!beliusd, !jualsgd, dll)
+    const validCommands = ['valas', 'kurs', 'forex', 'belivalas', 'jualvalas', 'aset', 'dompetvalas'];
+    CURRENCIES.forEach(c => {
+        validCommands.push(`beli${c}`);
+        validCommands.push(`jual${c}`);
+    });
+
     if (!validCommands.includes(command)) return;
 
-    // INIT DATABASE USER
-    // Tambahkan 'jpy' ke inventory user
-    if (!user.forex) user.forex = { usd: 0, eur: 0, jpy: 0, emas: 0 };
+    // INIT DATABASE USER (Dinamis sesuai daftar CURRENCIES)
+    if (!user.forex) user.forex = {};
+    CURRENCIES.forEach(c => {
+        if (typeof user.forex[c] === 'undefined') user.forex[c] = 0;
+    });
     
-    // INIT DATABASE PASAR
-    // Fallback price: USD 16.200, EUR 17.500, JPY 110, Emas 1.350.000
-    if (!db.market.forex) db.market.forex = { usd: 16200, eur: 17500, jpy: 110, emas: 1350000 }; 
+    // INIT DATABASE PASAR (Fallback jika API error)
+    const defaultPrices = { usd: 16200, eur: 17500, sgd: 12000, myr: 3400, jpy: 110, gbp: 20000, cny: 2200, sar: 4300, aud: 10500, emas: 1350000 };
+    if (!db.market.forex) db.market.forex = { ...defaultPrices }; 
+    else {
+        // Pastikan mata uang baru ikut masuk ke database lama
+        CURRENCIES.forEach(c => {
+            if (!db.market.forex[c]) db.market.forex[c] = defaultPrices[c];
+        });
+    }
     if (!db.market.lastForexUpdate) db.market.lastForexUpdate = 0;
 
     const now = Date.now();
     const UPDATE_INTERVAL = 15 * 60 * 1000; // Update tiap 15 Menit
 
     // ============================================================
-    // 🌐 FETCH REAL DATA (CoinGecko API)
+    // 🌐 FETCH REAL DATA (ER-API & CoinGecko)
     // ============================================================
     if (now - db.market.lastForexUpdate > UPDATE_INTERVAL) {
         try {
-            // IDs CoinGecko:
-            // tether = USD
-            // euro-coin = EUR
-            // gyen = JPY (Stablecoin Yen)
-            // pax-gold = EMAS
-            const url = 'https://api.coingecko.com/api/v3/simple/price?ids=tether,euro-coin,gyen,pax-gold&vs_currencies=idr';
-            
-            const response = await axios.get(url);
-            const data = response.data;
+            // 1. Ambil Kurs Mata Uang dari ER-API
+            const forexRes = await axios.get('https://open.er-api.com/v6/latest/USD', { timeout: 8000 });
+            const rates = forexRes.data.rates;
+            const idr = rates.IDR;
 
-            if (data.tether && data['euro-coin'] && data['gyen'] && data['pax-gold']) {
-                // 1. USD
-                db.market.forex.usd = Math.floor(data.tether.idr);
+            db.market.forex.usd = Math.round(idr);
+            db.market.forex.eur = Math.round(idr / rates.EUR);
+            db.market.forex.sgd = Math.round(idr / rates.SGD);
+            db.market.forex.myr = Math.round(idr / rates.MYR);
+            db.market.forex.jpy = Math.round(idr / rates.JPY);
+            db.market.forex.gbp = Math.round(idr / rates.GBP);
+            db.market.forex.cny = Math.round(idr / rates.CNY);
+            db.market.forex.sar = Math.round(idr / rates.SAR);
+            db.market.forex.aud = Math.round(idr / rates.AUD);
 
-                // 2. EUR
-                db.market.forex.eur = Math.floor(data['euro-coin'].idr);
-
-                // 3. JPY (NEW!)
-                db.market.forex.jpy = Math.floor(data.gyen.idr);
-
-                // 4. EMAS
-                const pricePerOunce = data['pax-gold'].idr;
-                const pricePerGram = Math.floor(pricePerOunce / 31.1035);
-                db.market.forex.emas = pricePerGram;
-
-                db.market.lastForexUpdate = now;
-                saveDB(db);
-                console.log("✅ Valas Updated (Real-Time):", db.market.forex);
+            // 2. Ambil Harga Emas dari CoinGecko (PAX-Gold)
+            try {
+                const goldRes = await axios.get('https://api.coingecko.com/api/v3/simple/price?ids=pax-gold&vs_currencies=idr', { timeout: 8000 });
+                if (goldRes.data['pax-gold']?.idr) {
+                    const pricePerOunce = goldRes.data['pax-gold'].idr;
+                    db.market.forex.emas = Math.floor(pricePerOunce / 31.1035); // Konversi Ounce ke Gram
+                }
+            } catch (goldErr) {
+                console.error("⚠️ Gagal update harga emas, pakai harga lama.");
             }
+
+            db.market.lastForexUpdate = now;
+            saveDB(db);
+            console.log("✅ Bursa Valas Updated:", db.market.forex);
         } catch (err) {
-            console.error("⚠️ Gagal update valas (Pakai harga lama):", err.message);
+            console.error("⚠️ Gagal update bursa valas:", err.message);
         }
     }
 
@@ -63,20 +80,25 @@ module.exports = async (command, args, msg, user, db) => {
     // 📉 CEK KURS REAL-TIME (!kurs)
     // ============================================================
     if (command === 'valas' || command === 'kurs' || command === 'forex') {
-        let txt = `📉 *BURSA VALAS REAL-TIME* 📈\n`;
-        txt += `_Data asli via CoinGecko (Update 15 mnt)_ \n\n`;
+        let txt = `📉 *BURSA VALAS REAL-TIME* 📈\n\n`;
 
         const m = db.market.forex;
         
-        txt += `🇺🇸 *USD (US Dollar)*\n   💰 Rp ${fmt(m.usd)} / lembar\n\n`;
-        txt += `🇪🇺 *EUR (Euro)*\n   💰 Rp ${fmt(m.eur)} / lembar\n\n`;
-        txt += `🇯🇵 *JPY (Japanese Yen)*\n   💰 Rp ${fmt(m.jpy)} / yen\n\n`;
-        txt += `🥇 *XAU (Emas Murni)*\n   💰 Rp ${fmt(m.emas)} / gram\n\n`;
+        txt += `🇺🇸 *USD*: Rp ${fmt(m.usd)} / lembar\n`;
+        txt += `🇪🇺 *EUR*: Rp ${fmt(m.eur)} / lembar\n`;
+        txt += `🇸🇬 *SGD*: Rp ${fmt(m.sgd)} / lembar\n`;
+        txt += `🇲🇾 *MYR*: Rp ${fmt(m.myr)} / lembar\n`;
+        txt += `🇯🇵 *JPY*: Rp ${fmt(m.jpy)} / yen\n`;
+        txt += `🇬🇧 *GBP*: Rp ${fmt(m.gbp)} / lembar\n`;
+        txt += `🇨🇳 *CNY*: Rp ${fmt(m.cny)} / yuan\n`;
+        txt += `🇸🇦 *SAR*: Rp ${fmt(m.sar)} / riyal\n`;
+        txt += `🇦🇺 *AUD*: Rp ${fmt(m.aud)} / lembar\n`;
+        txt += `🥇 *XAU*: Rp ${fmt(m.emas)} / gram (Emas)\n\n`;
 
-        txt += `💡 Ketik \`!belijpy 1000\` atau \`!beliemas 1\``;
+        txt += `💡 *Cara Beli:* \`!beliusd 10\` atau \`!beliemas 5\``;
         
         const lastUp = Math.floor((now - db.market.lastForexUpdate) / 60000);
-        txt += `\n\n_Updated: ${lastUp} menit yang lalu_`;
+        txt += `\n_Updated: ${lastUp} menit yang lalu_`;
         
         return msg.reply(txt);
     }
@@ -86,49 +108,36 @@ module.exports = async (command, args, msg, user, db) => {
     // ============================================================
     if (command === 'aset' || command === 'dompetvalas') {
         let txt = `💼 *PORTOFOLIO INVESTASI* 💼\n`;
-        txt += `👤 Investor: ${user.name}\n\n`;
+        txt += `👤 Investor: *${user.name || 'Warga'}*\n\n`;
 
         let totalValuation = 0;
         const prices = db.market.forex;
+        const flags = { usd: '🇺🇸 USD', eur: '🇪🇺 EUR', sgd: '🇸🇬 SGD', myr: '🇲🇾 MYR', jpy: '🇯🇵 JPY', gbp: '🇬🇧 GBP', cny: '🇨🇳 CNY', sar: '🇸🇦 SAR', aud: '🇦🇺 AUD', emas: '🥇 Emas' };
 
-        // USD
-        if (user.forex.usd > 0) {
-            let val = user.forex.usd * prices.usd;
-            txt += `🇺🇸 USD: $${fmt(user.forex.usd)} (Rp ${fmt(val)})\n`;
-            totalValuation += val;
-        }
-        // EUR
-        if (user.forex.eur > 0) {
-            let val = user.forex.eur * prices.eur;
-            txt += `🇪🇺 EUR: €${fmt(user.forex.eur)} (Rp ${fmt(val)})\n`;
-            totalValuation += val;
-        }
-        // JPY (NEW)
-        if (user.forex.jpy > 0) {
-            let val = user.forex.jpy * prices.jpy;
-            txt += `🇯🇵 JPY: ¥${fmt(user.forex.jpy)} (Rp ${fmt(val)})\n`;
-            totalValuation += val;
-        }
-        // EMAS
-        if (user.forex.emas > 0) {
-            let val = user.forex.emas * prices.emas;
-            txt += `🥇 Emas: ${fmt(user.forex.emas)} gram (Rp ${fmt(val)})\n`;
-            totalValuation += val;
+        let hasAsset = false;
+        for (const c of CURRENCIES) {
+            if (user.forex[c] > 0) {
+                let val = user.forex[c] * prices[c];
+                let satuan = c === 'emas' ? 'g' : '';
+                txt += `${flags[c]}: ${fmt(user.forex[c])}${satuan} (Rp ${fmt(val)})\n`;
+                totalValuation += val;
+                hasAsset = true;
+            }
         }
 
-        if (totalValuation === 0) txt += "_Kamu belum punya investasi._\n";
+        if (!hasAsset) txt += "_Kamu belum punya investasi._\n";
         
-        txt += `\n💰 *Total Aset: Rp ${fmt(totalValuation)}*`;
+        txt += `\n💰 *Total Aset Valas: Rp ${fmt(totalValuation)}*`;
         return msg.reply(txt);
     }
 
     // ============================================================
-    // 🛒 BELI ASET (!belivalas <code> <jumlah>)
+    // 🛒 BELI ASET (!beli<matauang> <jumlah>)
     // ============================================================
-    if (command === 'beliemas') { command = 'belivalas'; args = ['emas', args[0]]; }
-    if (command === 'beliusd') { command = 'belivalas'; args = ['usd', args[0]]; }
-    if (command === 'belieur') { command = 'belivalas'; args = ['eur', args[0]]; }
-    if (command === 'belijpy') { command = 'belivalas'; args = ['jpy', args[0]]; }
+    if (command.startsWith('beli') && command !== 'belivalas') {
+        args = [command.replace('beli', ''), args[0]];
+        command = 'belivalas';
+    }
 
     if (command === 'belivalas') {
         const code = args[0]?.toLowerCase();
@@ -143,31 +152,28 @@ module.exports = async (command, args, msg, user, db) => {
         if (user.balance < totalCost) return msg.reply(`❌ Uang kurang! Butuh Rp ${fmt(totalCost)}.`);
 
         user.balance -= totalCost;
-        // Init jika belum ada
         if (!user.forex) user.forex = {}; 
         user.forex[code] = (user.forex[code] || 0) + qty;
         
         saveDB(db);
         const unit = code === 'emas' ? 'gram' : (code === 'jpy' ? 'yen' : 'lembar');
-        return msg.reply(`✅ *INVESTASI SUKSES*\nMembeli ${qty} ${unit} ${code.toUpperCase()}.\n💸 Harga Beli: Rp ${fmt(price)}\n💰 Total: Rp ${fmt(totalCost)}`);
+        return msg.reply(`✅ *INVESTASI SUKSES*\nMembeli ${fmt(qty)} ${unit} ${code.toUpperCase()}.\n💸 Harga Beli: Rp ${fmt(price)}\n💰 Total: Rp ${fmt(totalCost)}`);
     }
 
     // ============================================================
-    // 💵 JUAL ASET (!jualvalas <code> <jumlah>)
+    // 💵 JUAL ASET (!jual<matauang> <jumlah>)
     // ============================================================
-    if (command === 'jualemas') { command = 'jualvalas'; args = ['emas', args[0]]; }
-    if (command === 'jualusd') { command = 'jualvalas'; args = ['usd', args[0]]; }
-    if (command === 'jualeur') { command = 'jualvalas'; args = ['eur', args[0]]; }
-    if (command === 'jualjpy') { command = 'jualvalas'; args = ['jpy', args[0]]; }
+    if (command.startsWith('jual') && command !== 'jualvalas') {
+        args = [command.replace('jual', ''), args[0]];
+        command = 'jualvalas';
+    }
 
     if (command === 'jualvalas') {
         const code = args[0]?.toLowerCase();
         let qty = args[1]; 
 
         if (!code || !db.market.forex[code]) return msg.reply("❌ Aset tidak valid.");
-        // Init jika belum ada
-        if (!user.forex) user.forex = {};
-        if (!user.forex[code] || user.forex[code] <= 0) return msg.reply("❌ Kamu tidak punya aset ini.");
+        if (!user.forex || !user.forex[code] || user.forex[code] <= 0) return msg.reply("❌ Kamu tidak punya aset ini.");
 
         if (qty === 'all') {
             qty = user.forex[code];
@@ -176,7 +182,7 @@ module.exports = async (command, args, msg, user, db) => {
         }
 
         if (isNaN(qty) || qty <= 0) return msg.reply("❌ Jumlah tidak valid.");
-        if (user.forex[code] < qty) return msg.reply(`❌ Stok kurang! Kamu cuma punya ${user.forex[code]}.`);
+        if (user.forex[code] < qty) return msg.reply(`❌ Stok kurang! Kamu cuma punya ${fmt(user.forex[code])}.`);
 
         const price = db.market.forex[code];
         const totalReceive = Math.floor(price * qty);
@@ -187,6 +193,6 @@ module.exports = async (command, args, msg, user, db) => {
 
         saveDB(db);
         const unit = code === 'emas' ? 'gram' : (code === 'jpy' ? 'yen' : 'lembar');
-        return msg.reply(`📉 *PENJUALAN SUKSES*\nMenjual ${qty} ${unit} ${code.toUpperCase()}.\n💵 Harga Jual: Rp ${fmt(price)}\n💰 Diterima: Rp ${fmt(totalReceive)}`);
+        return msg.reply(`📉 *PENJUALAN SUKSES*\nMenjual ${fmt(qty)} ${unit} ${code.toUpperCase()}.\n💵 Harga Jual: Rp ${fmt(price)}\n💰 Diterima: Rp ${fmt(totalReceive)}`);
     }
 };
