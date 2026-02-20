@@ -261,46 +261,46 @@ Format yang menarik dan informatif.`;
         // ─── DAFTAR KARAKTER ELEVENLABS ───────────────────────
         const VOICES = {
             // 👩 SUARA PEREMPUAN
-            'rachel-Tenang, Ramah': '21m00Tcm4TlvDq8ikWAM',   // Tenang, Ramah
-            'domi-Kuat, Emosional': 'AZnzlpC661zN5b15gA1P',     // Kuat, Emosional
-            'bella-Lembut': 'EXAVITQu4vr4xnSDxMaL',    // Lembut
-            'emily-Kalem': 'LcfcDJNUP1GQjkvn1xUw',    // Kalem
-            'elli-Ekspresif': 'MF3mGyEYCl7XYWbV9V6O',     // Ekspresif
-            'dorothy-British, Dongeng Anak': 'ThT5KcBeYPX3keUQqHPh',  // British, Dongeng anak
-            'charlotte-Menggoda, Santai': 'XB0fDUnXU5tzwAwxzVj1',// Menggoda, Santai
-            'matilda-Hangat, Narasi': 'XrExE9yKIg1WjnnlVkGX',  // Hangat, Narasi
-            'gigi-Kekanak-kanakan': 'jBpfuIE2acCO8z3wKOUg',     // Kekanak-kanakan
-            'freya-Karakter Game, Tegas': 'jsCqWAovK2zikvvWHpzZ',    // Karakter Game, Tegas
-            'grace-Aksen Selatan (US)': 'oWAxZDx7w5VEj9dCyTzz',    // Aksen Selatan (US)
-            'lily-Serak, Sedih': 'pFZP5JQG7iQjIQuC4Bku',     // Serak, Sedih
-            'serena-Menyenangkan': 'pNdV7HN2jcTKrv50XQk2',   // Menyenangkan
-            'nicole-Berbisik / ASMR': 'piTKgcLEGmPE4e6mJC11',   // Berbisik / ASMR
-            'glinda-Gaya Penyihir': 'z9fAnlkpzviPz146aGWa',   // Gaya Penyihir
+            'rachel': '21m00Tcm4TlvDq8ikWAM',   // Tenang, Ramah
+            'domi': 'AZnzlpC661zN5b15gA1P',     // Kuat, Emosional
+            'bella': 'EXAVITQu4vr4xnSDxMaL',    // Lembut
+            'emily': 'LcfcDJNUP1GQjkvn1xUw',    // Kalem
+            'elli': 'MF3mGyEYCl7XYWbV9V6O',     // Ekspresif
+            'dorothy': 'ThT5KcBeYPX3keUQqHPh',  // British, Dongeng anak
+            'charlotte': 'XB0fDUnXU5tzwAwxzVj1',// Menggoda, Santai
+            'matilda': 'XrExE9yKIg1WjnnlVkGX',  // Hangat, Narasi
+            'gigi': 'jBpfuIE2acCO8z3wKOUg',     // Kekanak-kanakan
+            'freya': 'jsCqWAovK2zikvvWHpzZ',    // Karakter Game, Tegas
+            'grace': 'oWAxZDx7w5VEj9dCyTzz',    // Aksen Selatan (US)
+            'lily': 'pFZP5JQG7iQjIQuC4Bku',     // Serak, Sedih
+            'serena': 'pNdV7HN2jcTKrv50XQk2',   // Menyenangkan
+            'nicole': 'piTKgcLEGmPE4e6mJC11',   // Berbisik / ASMR
+            'glinda': 'z9fAnlkpzviPz146aGWa',   // Gaya Penyihir
 
             // 👨 SUARA LAKI-LAKI
-            'drew-Pembaca Berita': '29vD33N1CtxCmqQRPOHJ',     // Pembaca Berita
-            'clyde-Veteran Perang, Serak': '2EiwWnXFnvU5JabPnv8n',    // Veteran Perang, Serak
-            'dave-Percakapan Santai': 'CYw3kZ02Kc81Dwwph2Gl',     // Percakapan Santai
-            'fin-Aksen Irlandia': 'D38z5RcWu1voky8WS1ja',      // Aksen Irlandia
-            'antoni-Bulat, Ramah': 'ErXwobaYiN019PkySvjV',   // Bulat, Ramah
-            'thomas-Sangat Tenang': 'GBv7mTt0atIp3Br8iCZE',   // Sangat Tenang
-            'charlie-Natural, Kasual': 'IKne3meq5aSn9XLyUdCD',  // Natural, Kasual
-            'callum-Berat, Serak': 'N2lVS1w4EtoT3dr4eOWO',   // Berat, Serak
-            'patrick-Lantang / Berteriak': 'ODq5zmih8GrVes37Dizd',  // Lantang / Berteriak
-            'harry-Cemas / Gugup': 'SOYHLrjzK2X1ezoPC6cr',    // Cemas / Gugup
-            'liam-Suara Anak Muda': 'TX3LPaxmHKxFHrU4XqI2',     // Suara Anak Muda
-            'josh-Narator Dokumenter': 'tx3xeKwWE18O4X2MvWPM',     // Narator Dokumenter
-            'arnold-Sangat Berat': 'VR6AewLTigWG4xSOukaG',   // Sangat Berat
-            'matthew-British Tua': 'Yko7PKHZNXotIFUBG7I9',  // British Tua
-            'james-Aksen Australia': 'ZQe5CZNOzWyzOMcNZUvi',    // Aksen Australia
-            'joseph-British Berita': 'Zlb1dXrM653N07zX8vtR',   // British Berita
-            'jeremy-Antusias / Bersemangat': 'bVMeCyTHy58xNoL34h3p',   // Antusias / Bersemangat
-            'michael-Membaca Buku Cerita': 'flq6f7yk4E4fJM5XTYuZ',  // Membaca Buku Cerita
-            'ethan-ASMR, Bisik-bisik': 'g5CIjZEefAph4nQFvHAz',    // ASMR, Bisik-bisik
-            'daniel-British Elegan': 'onwK4e9ZLuTAKqWW03F9',   // British Elegan
-            'adam-Berat, Dalam (Deep)': 'pNInz6obpgDQGcFmaJgB',     // Berat, Dalam (Deep)
-            'ryan-Militer / Tentara': 'wViXBPUzp2ZZixB1xQuM',     // Militer / Tentara
-            'sam-Kasar, Serak': 'yoZ06aBxZCGqiED32Qh0'       // Kasar, Serak
+            'drew': '29vD33N1CtxCmqQRPOHJ',     // Pembaca Berita
+            'clyde': '2EiwWnXFnvU5JabPnv8n',    // Veteran Perang, Serak
+            'dave': 'CYw3kZ02Kc81Dwwph2Gl',     // Percakapan Santai
+            'fin': 'D38z5RcWu1voky8WS1ja',      // Aksen Irlandia
+            'antoni': 'ErXwobaYiN019PkySvjV',   // Bulat, Ramah
+            'thomas': 'GBv7mTt0atIp3Br8iCZE',   // Sangat Tenang
+            'charlie': 'IKne3meq5aSn9XLyUdCD',  // Natural, Kasual
+            'callum': 'N2lVS1w4EtoT3dr4eOWO',   // Berat, Serak
+            'patrick': 'ODq5zmih8GrVes37Dizd',  // Lantang / Berteriak
+            'harry': 'SOYHLrjzK2X1ezoPC6cr',    // Cemas / Gugup
+            'liam': 'TX3LPaxmHKxFHrU4XqI2',     // Suara Anak Muda
+            'josh': 'tx3xeKwWE18O4X2MvWPM',     // Narator Dokumenter
+            'arnold': 'VR6AewLTigWG4xSOukaG',   // Sangat Berat
+            'matthew': 'Yko7PKHZNXotIFUBG7I9',  // British Tua
+            'james': 'ZQe5CZNOzWyzOMcNZUvi',    // Aksen Australia
+            'joseph': 'Zlb1dXrM653N07zX8vtR',   // British Berita
+            'jeremy': 'bVMeCyTHy58xNoL34h3p',   // Antusias / Bersemangat
+            'michael': 'flq6f7yk4E4fJM5XTYuZ',  // Membaca Buku Cerita
+            'ethan': 'g5CIjZEefAph4nQFvHAz',    // ASMR, Bisik-bisik
+            'daniel': 'onwK4e9ZLuTAKqWW03F9',   // British Elegan
+            'adam': 'pNInz6obpgDQGcFmaJgB',     // Berat, Dalam (Deep)
+            'ryan': 'wViXBPUzp2ZZixB1xQuM',     // Militer / Tentara
+            'sam': 'yoZ06aBxZCGqiED32Qh0'       // Kasar, Serak
         };
 
         const argsKarakter = args[0]?.toLowerCase();
