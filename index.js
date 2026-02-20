@@ -1613,53 +1613,27 @@ if (['info','berita','news'].includes(sub)) return msg.reply(
 
 if (['utilitas','utility','tools2'].includes(sub)) return msg.reply(
 `🔧 *UTILITAS*\n${'─'.repeat(30)}\n📱 !qr <teks/link> | !short <url> | !unshort <url>\n🔐 !password 16 strong | !password 6 pin | !uuid\n🔒 !base64 encode/decode | !md5 | !sha256\n🌐 !ip [alamat] | !ping <url> | !waktu | !countdown <tgl>\n📥 !tiktok <link> — Download TikTok tanpa watermark\n${'─'.repeat(30)}\n↩️ Balik: *!menu*`
-);
+                );
 
-return msg.reply(`❓ Kategori *"${sub}"* tidak ditemukan.\n\nKetik *!menu* untuk daftar lengkap.`);
-} // <-- Ini penutup command !menu utama
+                // 1. Pesan jika kategori di dalam !menu tidak ada
+                return msg.reply(`❓ Kategori *"${sub}"* tidak ditemukan.\n\nKetik *!menu* untuk daftar lengkap.`);
+            
+            } // <--- PENUTUP: if (command === 'menu' || command === 'help')
 
-            // ══════════════════════════════════════════════════
-            // STEGANOGRAFI
-            // ══════════════════════════════════════════════════
-            if (command === 'hide') {
-                const isImage = (msgType === 'imageMessage');
-                const isQImg  = m.message.extendedTextMessage?.contextInfo?.quotedMessage?.imageMessage;
-                if (!isImage && !isQImg) return msg.reply('⚠️ Kirim/Reply gambar dengan caption: !hide pesan rahasia');
-                const pesanRahasia = args.join(' ');
-                if (!pesanRahasia) return msg.reply('⚠️ Contoh: !hide Misi Rahasia 007');
-                msg.reply('⏳ Menyembunyikan pesan...');
-                try {
-                    let msgDl = m;
-                    if (isQImg) msgDl = { key: m.message.extendedTextMessage.contextInfo.stanzaId, message: m.message.extendedTextMessage.contextInfo.quotedMessage };
-                    const buffer    = await downloadMediaMessage(msgDl, 'buffer', {}, { logger: pino({ level: 'silent' }) });
-                    const inPath    = `./temp/steg_in_${sender.split('@')[0]}.jpg`;
-                    const outPath   = `./temp/steg_out_${sender.split('@')[0]}.png`;
-                    fs.writeFileSync(inPath, buffer);
-                    exec(`python3 commands/stegano.py hide "${inPath}" "${pesanRahasia}" "${outPath}"`, async (error) => {
-                        if (fs.existsSync(inPath)) fs.unlinkSync(inPath);
-                        if (error) return msg.reply('❌ Gagal. Pastikan Python3 terinstall.');
-                        await sock.sendMessage(remoteJid, { document: fs.readFileSync(outPath), mimetype: 'image/png', fileName: 'RAHASIA.png', caption: '✅ SUKSES! Download file ini.' }, { quoted: m });
-                        setTimeout(() => { if (fs.existsSync(outPath)) fs.unlinkSync(outPath); }, 5000);
-                    });
-                } catch(err) { msg.reply('Gagal mendownload gambar.'); }
+            // --- Jika ada command lain di luar menu, taruh di sini ---
+
+        // 2. MENUTUP TRY-CATCH UTAMA (Wajib ada!)
+        } catch (e) {
+            console.error(`[Handler Error] !${command}:`, e.message);
+            if (process.env.NODE_ENV === 'development') {
+                await msg.reply(`❌ Error: ${e.message.substring(0, 200)}`);
             }
+        }
 
-            if (command === 'reveal') {
-                const qMsg  = m.message.extendedTextMessage?.contextInfo?.quotedMessage;
-                if (!qMsg?.documentMessage && !qMsg?.imageMessage) return msg.reply('⚠️ Reply gambar/dokumen rahasia dengan !reveal');
-                msg.reply('🔍 Membaca pesan...');
-                try {
-                    const msgDl  = { key: m.message.extendedTextMessage.contextInfo.stanzaId, message: qMsg };
-                    const buffer = await downloadMediaMessage(msgDl, 'buffer', {}, { logger: pino({ level: 'silent' }) });
-                    const inPath = `./temp/reveal_${sender.split('@')[0]}.png`;
-                    fs.writeFileSync(inPath, buffer);
-                    exec(`python3 commands/stegano.py reveal "${inPath}"`, (error, stdout) => {
-                        if (fs.existsSync(inPath)) fs.unlinkSync(inPath);
-                        if (error) return msg.reply('❌ Tidak ditemukan pesan rahasia di file ini.');
-                        msg.reply(stdout);
-                    });
-                } catch(e) { msg.reply('Gagal mengambil media.'); }
-            }
+        // 3. Simpan DB setelah setiap command (di luar try-catch agar tetap save meski error)
+        debounceSave();
+
+    } // <--- PENUTUP: async function handleMessage
 
             // ══════════════════════════════════════════════════
             // DISPATCH SEMUA COMMAND MODULE
