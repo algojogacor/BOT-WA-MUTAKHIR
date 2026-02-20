@@ -237,7 +237,7 @@ async function startBot() {
     const sock = makeWASocket({
         version,
         logger: pino({ level: 'silent' }),
-        printQRInTerminal: true,
+        printQRInTerminal: false,
         auth: {
             creds: state.creds,
             keys:  makeCacheableSignalKeyStore(state.keys, pino({ level: 'fatal' }).child({ level: 'fatal' })),
@@ -248,10 +248,18 @@ async function startBot() {
         generateHighQualityLinkPreview: true,
     });
 
-    // ── Connection Update ──────────────────────────────────────
+  // ── Connection Update ──────────────────────────────────────
     sock.ev.on('connection.update', (update) => {
         const { connection, lastDisconnect, qr } = update;
-        if (qr) console.log('\n📲 Scan QR code di atas!');
+        
+        // Memunculkan teks panjang QR di log terminal
+        if (qr) {
+            console.log('\n' + '═'.repeat(50));
+            console.log('🔗 COPY TEKS DI BAWAH INI DAN PASTE DI goqr.me :');
+            console.log(qr);
+            console.log('═'.repeat(50) + '\n');
+        }
+
         if (connection === 'close') {
             const reason = lastDisconnect?.error?.output?.statusCode;
             console.log(`❌ Koneksi terputus. Reason: ${reason}`);
