@@ -1,10 +1,10 @@
 /**
  * ╔══════════════════════════════════════════════════════════════╗
- * ║         PORTOFOLIO & KURS PRO — Fitur 14 & 15               ║
- * ║  !porto add <simbol> <qty> <hargabeli>  — Tambah aset       ║
- * ║  !porto                                 — Lihat portofolio  ║
- * ║  !porto remove <simbol>                 — Hapus aset        ║
- * ║  !kurspro                               — Kurs + tren 7 hari║
+ * ║        PORTOFOLIO & KURS PRO — Fitur 14 & 15                 ║
+ * ║  !porto add <simbol> <qty> <hargabeli>  — Tambah aset        ║
+ * ║  !porto                                 — Lihat portofolio   ║
+ * ║  !porto remove <simbol>                 — Hapus aset         ║
+ * ║  !kurspro                               — Kurs + tren API    ║
  * ╚══════════════════════════════════════════════════════════════╝
  */
 
@@ -16,7 +16,7 @@ let cacheHarga = {};
 let lastFetch = 0;
 const CACHE_TTL = 5 * 60 * 1000; // 5 menit
 
-// ─── Daftar aset yang didukung ────────────────────────────────
+// ─── Daftar aset yang didukung (Untuk Porto Tracker) ──────────
 const ASET_MAP = {
     // Crypto
     'BTC': 'bitcoin', 'ETH': 'ethereum', 'BNB': 'binancecoin',
@@ -29,7 +29,7 @@ const ASET_MAP = {
     'USDT': 'tether', 'USDC': 'usd-coin',
 };
 
-// ─── Fetch harga real-time dari CoinGecko ─────────────────────
+// ─── Fetch harga real-time dari CoinGecko (Untuk Porto) ───────
 async function fetchHarga(simbolList) {
     const now = Date.now();
     if (now - lastFetch < CACHE_TTL && Object.keys(cacheHarga).length > 0) {
@@ -47,7 +47,6 @@ async function fetchHarga(simbolList) {
         const res = await axios.get(url, { timeout: 8000 });
         const data = res.data;
 
-        // Rebuild cache dengan simbol
         const newCache = {};
         Object.entries(ASET_MAP).forEach(([simbol, id]) => {
             if (data[id]) {
@@ -62,14 +61,13 @@ async function fetchHarga(simbolList) {
         lastFetch = now;
         return cacheHarga;
     } catch (e) {
-        console.error('Fetch harga error:', e.message);
-        return cacheHarga; // Return cache lama
+        console.error('Fetch harga porto error:', e.message);
+        return cacheHarga; 
     }
 }
 
 // ─── Format angka ─────────────────────────────────────────────
 const fmt = (n) => Math.floor(n).toLocaleString('id-ID');
-const fmtUSD = (n) => n < 1 ? n.toFixed(6) : n.toFixed(2);
 const sign = (n) => n >= 0 ? `+${n.toFixed(2)}` : `${n.toFixed(2)}`;
 
 // ──────────────────────────────────────────────────────────────
@@ -77,7 +75,6 @@ module.exports = async (command, args, msg, user, db) => {
     const validCommands = ['porto', 'portofolio', 'portfolio', 'kurspro', 'kursupdate'];
     if (!validCommands.includes(command)) return;
 
-    // Init portofolio
     if (!user.porto) user.porto = [];
 
     // ══════════════════════════════════════════════════════════
@@ -107,10 +104,8 @@ module.exports = async (command, args, msg, user, db) => {
                 return msg.reply(`❌ Simbol *${simbol}* tidak didukung.\n\nSimbol tersedia: ${Object.keys(ASET_MAP).join(', ')}`);
             }
 
-            // Cek apakah sudah ada
             const existing = user.porto.find(p => p.simbol === simbol);
             if (existing) {
-                // Average down/up
                 const totalQty = existing.qty + qty;
                 const totalModal = (existing.qty * existing.hargaBeli) + (qty * hargaBeli);
                 existing.qty = totalQty;
@@ -124,10 +119,7 @@ module.exports = async (command, args, msg, user, db) => {
             }
 
             user.porto.push({
-                simbol,
-                qty,
-                hargaBeli,
-                tanggal: new Date().toLocaleDateString('id-ID')
+                simbol, qty, hargaBeli, tanggal: new Date().toLocaleDateString('id-ID')
             });
             saveDB(db);
             return msg.reply(
@@ -206,42 +198,48 @@ module.exports = async (command, args, msg, user, db) => {
     }
 
     // ══════════════════════════════════════════════════════════
-    // FITUR 15: KURS PRO — !kurspro
+    // FITUR 15: KURS PRO — !kurspro (PENGAMBILAN DATA SESUAI VALAS)
     // ══════════════════════════════════════════════════════════
     if (command === 'kurspro' || command === 'kursupdate') {
-        await msg.reply('💱 _Mengambil data kurs real-time..._');
+        await msg.reply('💱 _Mengambil data kurs real-time API..._');
 
         try {
-            // Ambil kurs dari API
-            const kursUrl = 'https://api.coingecko.com/api/v3/simple/price?ids=tether,bitcoin,ethereum,binancecoin,pax-gold&vs_currencies=idr&include_24hr_change=true&include_7d_change=true';
-            const [kursRes, fiatRes] = await Promise.allSettled([
-                axios.get(kursUrl, { timeout: 8000 }),
+            // Ambil data Fiat dari ER-API & Crypto dari CoinGecko secara bersamaan
+            const cgUrl = 'https://api.coingecko.com/api/v3/simple/price?ids=tether,bitcoin,ethereum,binancecoin,solana,pax-gold&vs_currencies=idr&include_24hr_change=true&include_7d_change=true';
+            
+            const [cgRes, erRes] = await Promise.allSettled([
+                axios.get(cgUrl, { timeout: 8000 }),
                 axios.get('https://open.er-api.com/v6/latest/USD', { timeout: 8000 })
             ]);
 
-            const kursData = kursRes.status === 'fulfilled' ? kursRes.value.data : {};
-            const fiatData = fiatRes.status === 'fulfilled' ? fiatRes.value.data : {};
+            const cgData = cgRes.status === 'fulfilled' ? cgRes.value.data : {};
+            const erData = erRes.status === 'fulfilled' ? erRes.value.data : {};
 
-            const idrPerUsd = kursData.tether?.idr || fiatData?.rates?.IDR || 16000;
-            const usd24h = kursData.tether?.idr_24h_change || 0;
-            const usd7d = kursData.tether?.idr_7d_change || 0;
+            // === PERHITUNGAN FIAT DARI ER-API ===
+            const rates = erData?.rates || {};
+            const idrPerUsd = rates.IDR ? Math.round(rates.IDR) : 16000;
+            
+            const eurIdr = rates.EUR ? Math.round(idrPerUsd / rates.EUR) : 17500;
+            const sgdIdr = rates.SGD ? Math.round(idrPerUsd / rates.SGD) : 12000;
+            const myrIdr = rates.MYR ? Math.round(idrPerUsd / rates.MYR) : 3400;
+            const jpyIdr = rates.JPY ? Math.round(idrPerUsd / rates.JPY) : 110;
+            const gbpIdr = rates.GBP ? Math.round(idrPerUsd / rates.GBP) : 20000;
+            const cnyIdr = rates.CNY ? Math.round(idrPerUsd / rates.CNY) : 2200;
+            const sarIdr = rates.SAR ? Math.round(idrPerUsd / rates.SAR) : 4300;
+            const audIdr = rates.AUD ? Math.round(idrPerUsd / rates.AUD) : 10500;
 
-            const eurIdr = fiatData?.rates?.IDR && fiatData?.rates?.EUR
-                ? Math.round(fiatData.rates.IDR / fiatData.rates.EUR) : 17500;
-            const jpyIdr = fiatData?.rates?.IDR && fiatData?.rates?.JPY
-                ? Math.round(fiatData.rates.IDR / fiatData.rates.JPY) : 110;
-            const gbpIdr = fiatData?.rates?.IDR && fiatData?.rates?.GBP
-                ? Math.round(fiatData.rates.IDR / fiatData.rates.GBP) : 20500;
-            const sgdIdr = fiatData?.rates?.IDR && fiatData?.rates?.SGD
-                ? Math.round(fiatData.rates.IDR / fiatData.rates.SGD) : 12000;
-            const myrIdr = fiatData?.rates?.IDR && fiatData?.rates?.MYR
-                ? Math.round(fiatData.rates.IDR / fiatData.rates.MYR) : 3700;
+            // === PERHITUNGAN CRYPTO & TREND DARI COINGECKO ===
+            const usd24h = cgData.tether?.idr_24h_change || 0;
+            const usd7d = cgData.tether?.idr_7d_change || 0;
 
-            const btcIdr = kursData.bitcoin?.idr || 0;
-            const btc24h = kursData.bitcoin?.idr_24h_change || 0;
-            const ethIdr = kursData.ethereum?.idr || 0;
-            const eth24h = kursData.ethereum?.idr_24h_change || 0;
-            const goldIdr = kursData['pax-gold']?.idr || 0;
+            const btcIdr = cgData.bitcoin?.idr || 0;
+            const btc24h = cgData.bitcoin?.idr_24h_change || 0;
+            const ethIdr = cgData.ethereum?.idr || 0;
+            const eth24h = cgData.ethereum?.idr_24h_change || 0;
+            
+            // Konversi Ounce ke Gram
+            const goldOunce = cgData['pax-gold']?.idr || 0;
+            const goldGram = goldOunce ? Math.floor(goldOunce / 31.1035) : 0;
 
             const trendUSD = usd7d > 1 ? '📈 Menguat' : usd7d < -1 ? '📉 Melemah' : '➡️ Stabil';
             const trendBTC = btc24h > 0 ? '📈' : '📉';
@@ -253,15 +251,18 @@ module.exports = async (command, args, msg, user, db) => {
                 `💵 *FOREX vs IDR:*\n` +
                 `🇺🇸 USD: *Rp${fmt(idrPerUsd)}* (24h: ${sign(usd24h)}%) ${trendUSD}\n` +
                 `🇪🇺 EUR: *Rp${fmt(eurIdr)}*\n` +
+                `🇸🇬 SGD: *Rp${fmt(sgdIdr)}*\n` +
+                `🇲🇾 MYR: *Rp${fmt(myrIdr)}*\n` +
                 `🇯🇵 JPY: *Rp${fmt(jpyIdr)}*/¥\n` +
                 `🇬🇧 GBP: *Rp${fmt(gbpIdr)}*\n` +
-                `🇸🇬 SGD: *Rp${fmt(sgdIdr)}*\n` +
-                `🇲🇾 MYR: *Rp${fmt(myrIdr)}*\n\n` +
+                `🇨🇳 CNY: *Rp${fmt(cnyIdr)}*\n` +
+                `🇸🇦 SAR: *Rp${fmt(sarIdr)}*\n` +
+                `🇦🇺 AUD: *Rp${fmt(audIdr)}*\n\n` +
                 `${'─'.repeat(20)}\n` +
                 `₿ *CRYPTO vs IDR:*\n` +
                 `₿ BTC: *Rp${fmt(btcIdr)}* ${trendBTC} (${sign(btc24h)}%)\n` +
                 `⟠ ETH: *Rp${fmt(ethIdr)}* ${trendETH} (${sign(eth24h)}%)\n` +
-                (goldIdr > 0 ? `🥇 EMAS: *Rp${fmt(goldIdr/31.1)}/gram*\n` : '') +
+                (goldGram > 0 ? `🥇 EMAS: *Rp${fmt(goldGram)}/gram*\n` : '') +
                 `\n${'─'.repeat(20)}\n` +
                 `📊 Tren USD 7 hari: *${usd7d > 0 ? '+' : ''}${usd7d.toFixed(2)}%*\n` +
                 `_Update: ${new Date().toLocaleString('id-ID')}_\n\n` +
@@ -270,7 +271,7 @@ module.exports = async (command, args, msg, user, db) => {
             );
         } catch (e) {
             console.error('Kurs Error:', e.message);
-            return msg.reply('❌ Gagal mengambil data kurs. Coba lagi nanti.');
+            return msg.reply('❌ Gagal mengambil data kurs dari server. Coba lagi nanti.');
         }
     }
 };
