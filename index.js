@@ -1556,10 +1556,9 @@ ${'─'.repeat(30)}
                 }
 
                 // ════════════════════════════════════════════════
-                //  !menu event
-                // ════════════════════════════════════════════════
-                if (['event', 'abuse', 'adminabuse'].includes(sub)) {
-                    return msg.reply(
+//  !menu event
+// ════════════════════════════════════════════════
+if (['event', 'abuse', 'adminabuse'].includes(sub)) return msg.reply(
 `🎉 *ADMIN ABUSE EVENT SYSTEM*
 ${'─'.repeat(30)}
 
@@ -1577,47 +1576,47 @@ ${'─'.repeat(30)}
 └──────────────────────────────┘
 
 📋 *12 EVENT RANDOM*
- 1. 🌧️ *Hujan Uang*      — Semua dapat koin gratis
+ 1. 🌧️ *Hujan Uang* — Semua dapat koin gratis
  2. 🎰 *Jackpot Bersama* — Taruh 50rb, 1 orang menang semua
- 3. 🛒 *Borong Pasar*    — Diskon 50% semua item & hewan
- 4. ☄️ *Meteor Langka*   — Ketik *KLAIM* tercepat = hadiah besar
- 5. 🌾 *Musim Panen*     — Hasil tani & ternak 3x lipat
- 6. ⛏️ *Rush Tambang*    — Cooldown 0 + hasil 5x + listrik gratis
- 7. 🎲 *Winrate Gila*    — Casino/Slot/Rolet/Mines winrate 85%!
- 8. ⚔️ *Duel Berhadiah*  — Menang duel dapat +2 Juta bonus
+ 3. 🛒 *Borong Pasar* — Diskon 50% semua item & hewan
+ 4. ☄️ *Meteor Langka* — Ketik *KLAIM* tercepat = hadiah besar
+ 5. 🌾 *Musim Panen* — Hasil tani & ternak 3x lipat
+ 6. ⛏️ *Rush Tambang* — Cooldown 0 + hasil 5x + listrik gratis
+ 7. 🎲 *Winrate Gila* — Casino/Slot/Rolet/Mines winrate 85%!
+ 8. ⚔️ *Duel Berhadiah* — Menang duel dapat +2 Juta bonus
  9. 🧠 *Tebak Berhadiah* — Jawab soal pertama = menang besar
-10. ⚡ *Balapan Klik*    — Ketik kata paling cepat = menang
-11. 📊 *Lomba Aktif*     — Paling banyak chat 5 menit = menang
-12. 👾 *Boss Raid*       — Serang boss dengan *!serang*, reward % damage
+10. ⚡ *Balapan Klik* — Ketik kata paling cepat = menang
+11. 📊 *Lomba Aktif* — Paling banyak chat 5 menit = menang
 
 📌 _Hanya admin grup yang bisa aktifkan event_
 📌 _Event interaktif: 1 pemenang per grup_
 
 ${'─'.repeat(30)}
 ↩️ Balik: *!menu*`
+);
 
-                if (['reminder','remind','pengingat'].includes(sub)) return msg.reply(
+if (['reminder','remind','pengingat'].includes(sub)) return msg.reply(
 `⏰ *REMINDER*\n${'─'.repeat(30)}\n• !remind 30m Minum obat\n• !remind 2h Meeting\n• !remind 08:30 Sarapan\n• !remind 1d Bayar tagihan\n• !remind 25/12 HUT RI\n📌 !remindlist | !reminddel <ID> | !remindclear\n${'─'.repeat(30)}\n↩️ Balik: *!menu*`
-                );
+);
 
-                if (['group','grup','manajemen'].includes(sub)) return msg.reply(
+if (['group','grup','manajemen'].includes(sub)) return msg.reply(
 `👥 *MANAJEMEN GRUP*\n${'─'.repeat(30)}\n👑 !tagall | !hidetag | !kick | !add | !promote | !demote\n⚙️ !antilink | !antispam | !mute / !unmute\n💬 !welcome <pesan> | !goodbye <pesan>\n📋 !setrules | !rules | !groupinfo | !listadmin | !setdesc\n${'─'.repeat(30)}\n↩️ Balik: *!menu*`
-                );
+);
 
-                if (['kalkulator','kalk','hitung'].includes(sub)) return msg.reply(
+if (['kalkulator','kalk','hitung'].includes(sub)) return msg.reply(
 `🔢 *KALKULATOR*\n${'─'.repeat(30)}\n🧮 !kalk 2+2*10 | !kalk sqrt(144)\n💹 !persen 20 dari 500000\n🏋️ !bmi 70 175 (berat kg, tinggi cm)\n🏦 !cicilan 100jt 12% 24 | !zakat 5000000\n📏 !konversi 5 km ke mile | !konversi 100 usd ke idr\n${'─'.repeat(30)}\n↩️ Balik: *!menu*`
-                );
+);
 
-                if (['info','berita','news'].includes(sub)) return msg.reply(
+if (['info','berita','news'].includes(sub)) return msg.reply(
 `📰 *INFO & BERITA*\n${'─'.repeat(30)}\n📰 !berita [teknologi|ekonomi|olahraga|hiburan|sains]\n💱 !kurs | !dollar | !btc\n🌤️ !cuaca <kota> | !prakiraan <kota>\n${'─'.repeat(30)}\n↩️ Balik: *!menu*`
-                );
+);
 
-                if (['utilitas','utility','tools2'].includes(sub)) return msg.reply(
+if (['utilitas','utility','tools2'].includes(sub)) return msg.reply(
 `🔧 *UTILITAS*\n${'─'.repeat(30)}\n📱 !qr <teks/link> | !short <url> | !unshort <url>\n🔐 !password 16 strong | !password 6 pin | !uuid\n🔒 !base64 encode/decode | !md5 | !sha256\n🌐 !ip [alamat] | !ping <url> | !waktu | !countdown <tgl>\n📥 !tiktok <link> — Download TikTok tanpa watermark\n${'─'.repeat(30)}\n↩️ Balik: *!menu*`
-                );
+);
 
-                return msg.reply(`❓ Kategori *"${sub}"* tidak ditemukan.\n\nKetik *!menu* untuk daftar lengkap.`);
-            } // end menu
+return msg.reply(`❓ Kategori *"${sub}"* tidak ditemukan.\n\nKetik *!menu* untuk daftar lengkap.`);
+} // <-- Ini penutup command !menu utama
 
             // ══════════════════════════════════════════════════
             // STEGANOGRAFI
