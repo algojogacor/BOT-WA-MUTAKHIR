@@ -182,7 +182,7 @@ const calculateNetWorth = (userId, userData) => {
     };
 
 // ==================================================================
-    // 1. PROFILE USER (!me) - UPDATED WITH MINING ASSETS
+    // 1. PROFILE USER (!me)
     // ==================================================================
     if (command === "me" || command === "profile" || command === "level") {
         const senderId = msg.author || msg.key.participant || msg.key.remoteJid;
@@ -209,27 +209,60 @@ const calculateNetWorth = (userId, userData) => {
              }
         }
 
-        // 3. Hitung Aset Mining (Hardware + Upgrade) - NEW!
+        // 3. Hitung Aset Mining (Hardware + Upgrade)
         let miningAsset = 0;
         if (user.mining?.racks) {
             user.mining.racks.forEach(m => miningAsset += (MINING_PRICES[m] || 0));
         }
         if (user.mining?.upgrades) {
-            // Kita asumsikan UPGRADES didefinisikan di atas (Cooling, PSU, dll)
             const UPG_PRICES = { 'cooling': 5000000000, 'psu': 10000000000, 'firewall': 20000000000 };
             for (let [u, a] of Object.entries(user.mining.upgrades)) {
                 if (a) miningAsset += (UPG_PRICES[u] || 0);
             }
         }
 
-        // 4. Hitung Aset Crypto (BTC/ETH/dll) - NEW!
+        // 4. Hitung Aset Crypto (BTC/ETH/dll)
         let cryptoAsset = 0;
         if (user.crypto) {
             for (let [coin, amt] of Object.entries(user.crypto)) {
                 let price = db.market?.prices?.[coin]?.price || 0;
-                // Fallback harga BTC jika market belum update (1.5M per koin)
                 if (price === 0 && coin === 'btc') price = 1500000000;
                 cryptoAsset += safeInt(amt) * price;
+            }
+        }
+
+        // 5. Hitung Aset Pabrik (Mesin & Inventori) - NEW!
+        let factoryAsset = 0;
+        if (db.factories?.[senderId]) {
+            const myFactory = db.factories[senderId];
+            if (myFactory.machines) {
+                myFactory.machines.forEach(m => factoryAsset += (FACTORY_MACHINE_PRICES[m] || 0));
+            }
+            if (myFactory.inventory) {
+                for (let [item, qty] of Object.entries(myFactory.inventory)) {
+                    factoryAsset += safeInt(qty) * (FACTORY_PRODUCT_PRICES[item] || 0);
+                }
+            }
+        }
+
+        // 6. Hitung Aset Ternak & Tani - NEW!
+        let farmAsset = 0;
+        if (user.ternak) user.ternak.forEach(a => farmAsset += (ANIMAL_PRICES[a.type] || 0));
+        if (user.farm?.machines) user.farm.machines.forEach(m => farmAsset += (MACHINE_PRICES[m] || 0));
+        if (user.farm?.inventory) {
+            for (let [item, qty] of Object.entries(user.farm.inventory)) {
+                let price = db.market?.commodities?.[item] || CROP_PRICES[item] || 0;
+                farmAsset += safeInt(qty) * price;
+            }
+        }
+
+        // 7. Hitung Aset Saham - NEW!
+        let sahamAsset = 0;
+        if (user.portfolio) {
+            for (let [code, stock] of Object.entries(user.portfolio)) {
+                let price = stock.avg;
+                if (db.stockMarket?.prices?.[code]) price = db.stockMarket.prices[code].price;
+                sahamAsset += safeInt(stock.qty) * price;
             }
         }
 
@@ -245,9 +278,11 @@ const calculateNetWorth = (userId, userData) => {
         txt += `🏦 Bank: Rp ${fmt(user.bank)}\n`;
         txt += `💱 Valas/Emas: Rp ${fmt(valasAsset)}\n`;
         txt += `🏢 Properti: Rp ${fmt(propertyAsset)}\n`;
-        txt += `⛏️ Perangkat Mining: Rp ${fmt(miningAsset)}\n`; // NEW
-        txt += `🪙 Aset Crypto: Rp ${fmt(cryptoAsset)}\n`;      // NEW
-        txt += `🏭 Industri: ${db.factories?.[senderId] ? 'Aktif' : '-'}\n`; 
+        txt += `⛏️ Perangkat Mining: Rp ${fmt(miningAsset)}\n`;
+        txt += `🪙 Aset Crypto: Rp ${fmt(cryptoAsset)}\n`;
+        txt += `📈 Saham: Rp ${fmt(sahamAsset)}\n`;               
+        txt += `🏭 Industri: Rp ${fmt(factoryAsset)}\n`;            
+        txt += `🚜 Ternak & Tani: Rp ${fmt(farmAsset)}\n`;          
         if (user.debt > 0) txt += `⚠️ Hutang: -Rp ${fmt(user.debt)}\n`;
         txt += `━━━━━━━━━━━━━━━━━━━\n`;
         txt += `💎 *NET WORTH (BERSIH)*\n`;
@@ -402,4 +437,5 @@ const calculateNetWorth = (userId, userData) => {
     }
 
 };
+
 
