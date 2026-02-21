@@ -188,7 +188,7 @@ module.exports = async (command, args, msg, user, db, body) => {
         const bankSoal = SOAL_TRIVIA[kategori];
         const soalData = bankSoal[Math.floor(Math.random() * bankSoal.length)];
 
-        const hadiah = Math.floor(Math.random() * 9000001) + 1000000; // 1 Juta – 10 Juta koin
+        const hadiah = Math.floor(Math.random() * 30000001) + 50000000; // 50 Juta – 80 Juta koin
         const WAKTU = 30; // 30 detik
 
         const timeout = setTimeout(async () => {
